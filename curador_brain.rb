@@ -90,28 +90,47 @@ class CuradorBrain
   end
 
   def self.consultar_ia(lista, genero)
-    uri = URI("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=#{GEMINI_KEY}")
+    # Usando Groq com Llama 3 para máxima velocidade e sem frescura de cota
+    uri = URI("https://api.groq.com/openai/v1/chat/completions")
+    api_key = ENV['GROQ_API_KEY']
 
     prompt = <<~PROMPT
-      Você é um crítico de cinema especializado em clássicos e cinema de autor.
-      O usuário assistiu +2300 filmes e possui acesso a Netflix, Max, Prime Video, Disney+ e fontes alternativas.
+      Você é um crítico de cinema cult. O usuário assistiu +2300 filmes.
+      Indique 4 pérolas de #{genero} (pós-1960) desta lista:
+      #{lista.map { |f| "#{f[:titulo]} (#{f[:ano]}) - Sinopse: #{f[:sinopse]}" }.join("\n")}
 
-      TAREFA:
-      Escolha os **4 FILMES MAIS IMPACTANTES** tecnicamente da lista de #{genero} abaixo.
-      FUJA do óbvio (nada de blockbusters saturados). Foque em diretores renomados, fotografia marcante ou roteiros geniais.
-
-      FORMATO DE SAÍDA:
-      - **TÍTULO (ANO)**
-      - **O Diferencial**: Por que um cinéfilo sério precisa ver este filme? (Seja direto e mordaz).
-      - **Onde encontrar**: Indique se é provável estar no [Streaming] ou se é um 'Hidden Gem' de fontes externas.
-      - **Expectativa Técnica**: 0-100%.
-
-      LISTA DE CANDIDATOS:
-      #{lista.map { |f| "#{f[:titulo]} (#{f[:ano]}) - Nota TMDB: #{f[:nota]} - Sinopse: #{f[:sinopse]}" }.join("\n")}
+      Regras:
+      1. Seja direto, elegante e levemente ácido.
+      2. Foque na qualidade técnica e fuja do óbvio.
+      3. Use negrito nos títulos.
     PROMPT
 
-    res = Net::HTTP.post(uri, { contents: [{ parts: [{ text: prompt }] }] }.to_json, { 'Content-Type' => 'application/json' })
-    JSON.parse(res.body).dig('candidates', 0, 'content', 'parts', 0, 'text') || "Erro na IA."
+    header = {
+      'Authorization' => "Bearer #{api_key}",
+      'Content-Type' => 'application/json'
+    }
+
+    body = {
+      model: "llama3-70b-8192",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7
+    }.to_json
+
+    begin
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      res = http.post(uri.path, body, header)
+
+      if res.code != '200'
+        puts "\n⚠️ [DEBUG GROQ] Erro #{res.code}: #{res.body}"
+        return "Erro na comunicação com a Groq."
+      end
+
+      json = JSON.parse(res.body)
+      json.dig('choices', 0, 'message', 'content') || "Erro estrutural na resposta."
+    rescue => e
+      "⚠️ Erro na requisição: #{e.message}"
+    end
   end
 end
 
