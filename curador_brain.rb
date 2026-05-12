@@ -110,8 +110,8 @@ class CuradorBrain
       'Content-Type' => 'application/json'
     }
 
-    body = {
-      model: "llama3-70b-8192",
+   body = {
+      model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7
     }.to_json
