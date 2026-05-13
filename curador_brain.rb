@@ -1,3 +1,4 @@
+require 'dotenv/load' # <--- OBRIGATÓRIO PARA LER O .ENV
 require 'csv'
 require 'json'
 require 'net/http'
@@ -22,12 +23,12 @@ class CuradorBrain
     "12" => { nome: "História", id: 36 },
     "13" => { nome: "Mistério", id: 9648 },
     "14" => { nome: "Fantasia", id: 14 },
-    "15" => { nome: "Neo-Noir", id: 80 } # Mapeado para Crime com filtro de estilo no prompt
+    "15" => { nome: "Neo-Noir", id: 80 }
   }
 
   def self.menu
     puts "\n🎬 --- CURADOR CINEMATOGRÁFICO ELITE (v3.0) ---"
-    puts "Filtro: Pós-1960 | Foco: Deep Cuts & Técnica"
+    puts "Filtro: Pós-1980 | Foco: Deep Cuts & Técnica"
 
     GENRES.each_slice(2) do |left, right|
       l = "#{left[0].ljust(2)} - #{left[1][:nome].ljust(20)}"
@@ -71,8 +72,8 @@ class CuradorBrain
   def self.buscar_por_genero(id)
     filmes = []
     (1..4).each do |p|
-      # Filtros: Desde 1960, min 150 votos, ordenado por relevância técnica (vote_average)
-      url = URI("https://api.themoviedb.org/3/discover/movie?with_genres=#{id}&primary_release_date.gte=1960-01-01&vote_count.gte=150&sort_by=vote_average.desc&language=pt-BR&page=#{p}")
+      # ALINHADO COM O SEU PROMPT: Busca no TMDB a partir de 1980
+      url = URI("https://api.themoviedb.org/3/discover/movie?with_genres=#{id}&primary_release_date.gte=1980-01-01&vote_count.gte=150&sort_by=vote_average.desc&language=pt-BR&page=#{p}")
 
       http = Net::HTTP.new(url.host, url.port)
       http.use_ssl = true
@@ -90,13 +91,12 @@ class CuradorBrain
   end
 
   def self.consultar_ia(lista, genero)
-    # Usando Groq com Llama 3 para máxima velocidade e sem frescura de cota
     uri = URI("https://api.groq.com/openai/v1/chat/completions")
     api_key = ENV['GROQ_API_KEY']
 
     prompt = <<~PROMPT
       Você é um crítico de cinema cult. O usuário assistiu +2300 filmes.
-      Indique 4 pérolas de #{genero} (pós-1960) desta lista:
+      Indique 4 pérolas de #{genero} (pós-1980) desta lista:
       #{lista.map { |f| "#{f[:titulo]} (#{f[:ano]}) - Sinopse: #{f[:sinopse]}" }.join("\n")}
 
       Regras:
@@ -110,7 +110,7 @@ class CuradorBrain
       'Content-Type' => 'application/json'
     }
 
-   body = {
+    body = {
       model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7
