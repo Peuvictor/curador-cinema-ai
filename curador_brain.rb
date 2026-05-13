@@ -62,7 +62,7 @@ class CuradorBrain
 
     veredito = consultar_ia(novidades, genero_alvo[:nome])
 
-    puts "\n--- ✨ AS 4 ESCOLHAS DO CURADOR ---"
+    puts "\n--- ✨ AS 10 ESCOLHAS DO CURADOR ---"
     puts veredito
     puts "-----------------------------------"
   end
@@ -96,7 +96,7 @@ class CuradorBrain
 
     prompt = <<~PROMPT
       Você é um crítico de cinema cult. O usuário assistiu +2300 filmes.
-      Indique 4 pérolas de #{genero} (pós-1980) desta lista:
+      Indique 10 pérolas de #{genero} (pós-1980) desta lista:
       #{lista.map { |f| "#{f[:titulo]} (#{f[:ano]}) - Sinopse: #{f[:sinopse]}" }.join("\n")}
 
       Regras:
